@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package task;
+
+option go_package = ".";
+
+service TaskService {
+    rpc CreateTask(TaskMessage) returns (TaskMessage);
+    rpc UpdateTask(TaskMessage) returns (TaskMessage);
+    rpc GetTask(TaskMessage) returns (TaskMessage);
+    rpc DeleteTask(TaskMessage) returns (TaskMessage);
+}
+
+message TaskMessage {
+    string id = 1;
+    string author_id = 2;
+    string name = 3;
+    string description = 4;
+    string deadline = 5;
+    string status = 6;
+}

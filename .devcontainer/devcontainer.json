@@ -1,0 +1,55 @@
+{
+    "name": "dtms",
+
+    "dockerComposeFile": [
+        "../docker-compose.yml",
+        "docker-compose.dev.yml"
+    ],
+
+    "runArgs": ["--runtime=podman"],
+
+    "service": "auth-service",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "golang.go",
+                "golang.go-doc",
+                "hollowtree.vscode-go-test-explorer",
+                "eamodio.gitlens",
+                "esbenp.prettier-vscode",
+                "CoenraadS.bracket-pair-colorizer",
+                "usernamehw.errorlens",
+                "go-delve.delve"
+            ],
+
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "go.useLanguageServer": true,
+                "go.languageServerFlags": [
+                    "-rpc.trace"
+                ],
+                "docker.path": "podman"
+            }
+        }
+    },
+
+    "runServices": [
+        "auth-service",
+        "mongo",
+        "mongo-express",
+        "redis",
+        "redis-ui",
+        "zookeeper",
+        "kafka",
+        "kafka-ui",
+        "gateway-service"
+    ],
+
+    // "postStartCommand": "bash -i /${containerWorkspaceFolder}/scripts/install_dependencies.sh",
+    "overrideCommand": false,
+    "containerEnv": {
+        "DOCKER_HOST": "unix:///run/user/1000/podman/podman.sock"
+    }
+}

@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  auth-service:
+    volumes:
+      - ..:/workspaces:cached
+
+    environment:
+      - http_proxy=${http_proxy}
+      - https_proxy=${https_proxy}
+
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
