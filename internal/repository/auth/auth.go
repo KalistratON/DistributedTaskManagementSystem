@@ -15,6 +15,7 @@ import (
 )
 
 const TOKEN_EXPIRATION_TIME = 15 * time.Minute
+const ID_TOKEN_HASH = "user_id:token"
 
 func generateJwtToken(base string) (string, error) {
 	srtKey := os.Getenv("JWT_TOKEN_KEY")
@@ -61,6 +62,11 @@ func (r *authRepository) Create(auth *domain.Auth) (*domain.Auth, error) {
 		return nil, err
 	}
 
+	if err = r.rdb.HSet(r.ctx, ID_TOKEN_HASH, auth.Id, token).Err(); err != nil {
+		log.Printf("error while create auth info")
+		return nil, err
+	}
+
 	return &domain.Auth{
 		Id:    res.Val(),
 		Token: token,
@@ -88,7 +94,7 @@ func (r *authRepository) Get(token string) (*domain.Auth, error) {
 
 	res := r.rdb.Get(r.ctx, token)
 	if err := res.Err(); err != nil {
-		log.Printf("error while trying to get cash by token")
+		log.Printf("error while trying to get cash by token: %v", err)
 		return nil, err
 	}
 
@@ -96,6 +102,27 @@ func (r *authRepository) Get(token string) (*domain.Auth, error) {
 		Id:    res.Val(),
 		Token: token,
 	}, nil
+}
+
+func (r *authRepository) GetToken(id string) (*domain.Auth, error) {
+	id = strings.TrimSpace(id)
+	if len(id) < 1 {
+		return nil, errors.EmptyId{}
+	}
+
+	res := r.rdb.HGet(r.ctx, ID_TOKEN_HASH, id)
+	if err := res.Err(); err != nil {
+		log.Printf("error while trying to get cash by id: %v", err)
+		return nil, err
+	}
+
+	result, err := r.Get(res.Val())
+	if err != nil {
+		log.Printf("token was expired: %v", err)
+		return nil, errors.ExpiredToken{}
+	}
+
+	return result, nil
 }
 
 func (r *authRepository) Delete(token string) (*domain.Auth, error) {
@@ -120,5 +147,11 @@ func (r *authRepository) Delete(token string) (*domain.Auth, error) {
 		log.Printf("no data was deleted")
 		return nil, errors.EmptyDelete{}
 	}
+
+	if err = r.rdb.HDel(r.ctx, ID_TOKEN_HASH, target.Id).Err(); err != nil {
+		log.Printf("error while create auth info")
+		return nil, err
+	}
+
 	return target, nil
 }

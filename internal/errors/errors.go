@@ -137,3 +137,9 @@ type NilRepo struct{}
 func (err NilRepo) Error() string {
 	return `repo is nil`
 }
+
+type ExpiredToken struct{}
+
+func (err ExpiredToken) Error() string {
+	return `token is expired`
+}

@@ -24,12 +24,19 @@ func NewAuthUseCases(authRepo repository_auth.AuthRepository) (AuthUseCases, err
 var _ AuthUseCases = &authUseCases{}
 
 func (r *authUseCases) SoftCreate(auth *domain.Auth) (*domain.Auth, error) {
-	// ToDo: проверять, что существует токен для auth.Id, и если нет - создавать
-	return r.authRepo.Create(auth)
+	existedAuth, err := r.authRepo.GetToken(auth.Id)
+	if err != nil {
+		return r.authRepo.Create(auth)
+	}
+
+	return r.authRepo.Update(existedAuth.Token)
 }
 
 func (r *authUseCases) HardCreate(auth *domain.Auth) (*domain.Auth, error) {
-	// ToDo: удалять токен, по user.id
+	existedAuth, err := r.authRepo.GetToken(auth.Id)
+	if err == nil {
+		r.authRepo.Delete(existedAuth.Token)
+	}
 	return r.authRepo.Create(auth)
 }
 
