@@ -1,0 +1,6 @@
+vendor/
+data/
+.vscode/
+bin/
+
+go.sum

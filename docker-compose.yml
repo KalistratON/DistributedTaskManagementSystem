@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: docker.io/postgres:11
+    container_name: postgres
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+    volumes:
+      - ${PWD}/database/init:/docker-entrypoint-initdb.d:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - 5432:5432
+    networks:
+      - localnetwork
+
+  mongo:
+    image: docker.io/mongo:4.4
+    container_name: mongo
+    ports:
+      - "27017:27017" 
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root 
+      MONGO_INITDB_ROOT_PASSWORD: password
+    networks:
+      - localnetwork
+    # volumes:
+    #   - ./data/db:/data/db
+    #   - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+
+  mongo-express:
+    image: docker.io/mongo-express:1.0.2
+    container_name: mongo-express 
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_URL: mongodb://root:password@mongo:27017/
+      ME_CONFIG_BASICAUTH: "false"
+    networks:
+      - localnetwork
+
+  redis:
+    image: docker.io/redis:7.4.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+    # volumes:
+    #   - redis_data:/data
+    networks:
+      - localnetwork
+
+  redis-ui:
+    image: docker.io/redislabs/redisinsight:2.68
+    container_name: redis-ui
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "9000:5540"
+    networks:
+      - localnetwork
+
+  zookeeper:
+    image: docker.io/confluentinc/cp-zookeeper:7.6.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - localnetwork
+  kafka:
+    image: docker.io/confluentinc/cp-kafka:7.3.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    networks:
+      - localnetwork
+  kafka-ui:
+    image: docker.io/provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - 9001:8080
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+    depends_on:
+      - kafka
+    networks:
+      - localnetwork
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: deployments/services/auth.Dockerfile
+    container_name: auth-service
+    ports:
+      - "50051:50051"
+    env_file:
+      - ${PWD}/deployments/.env/common.env
+      - ${PWD}/deployments/.env/auth.env
+    networks:
+      - localnetwork
+
+  task-service:
+    build:
+      context: .
+      dockerfile: deployments/services/task.Dockerfile
+    container_name: task-service
+    ports:
+      - "50052:50051"
+    env_file:
+      - ${PWD}/deployments/.env/common.env
+    networks:
+      - localnetwork
+
+  user-service:
+    build:
+      context: .
+      dockerfile: deployments/services/user.Dockerfile
+    container_name: user-service
+    ports:
+      - "50053:50051"
+    env_file:
+      - ${PWD}/deployments/.env/common.env
+    networks:
+      - localnetwork
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: deployments/services/notify.Dockerfile
+    container_name: notification-service
+    env_file:
+      - ${PWD}/deployments/.env/common.env
+    networks:
+      - localnetwork
+
+  gateway-service:
+    build:
+      context: .
+      dockerfile: deployments/services/gateway.Dockerfile
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      AUTH_SERVICE_URL: "auth-service:50051"
+      TASK_SERVICE_URL: "task-service:50052"
+      USER_SERVICE_URL: "user-service:50053"
+    networks:
+      - localnetwork
+
+networks:
+  localnetwork:
+    driver: bridge

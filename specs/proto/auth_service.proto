@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = ".";
+
+service AuthService {
+    rpc SoftCreate(AuthMessage) returns (AuthMessage);
+    rpc HardCreate(AuthMessage) returns (AuthMessage);
+    rpc Get(AuthMessage) returns (AuthMessage);
+    rpc Extend(AuthMessage) returns (AuthMessage);
+    rpc Delete(AuthMessage) returns (AuthMessage);
+}
+
+message AuthMessage {
+    string id = 1;
+    string token = 2;
+}
